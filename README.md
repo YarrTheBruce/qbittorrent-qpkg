@@ -78,7 +78,14 @@ Center listing triggers this same warning.
 - **WebUI**: `http://<nas-ip>:6262/` by default (8080 is QNAP's own admin
   WebUI port, so qBittorrent uses 6262 instead). The port is read from the
   QPKG's `Web_Port` field in `/etc/config/qpkg.conf` (editable via App
-  Center → qBittorrent → settings icon).
+  Center → qBittorrent → settings icon). Navigate there directly rather
+  than using App Center's "Open" button/icon if it ever shows a bare
+  "Unauthorized" with no login prompt — `qpkg.cfg` forces
+  `QPKG_DESKTOP_APP="0"` (plain new tab, not an iframe in the QTS desktop)
+  specifically to avoid this: qBittorrent's WebUI sends `frame-ancestors
+  'self'` in its CSP and its CSRF check rejects requests whose Origin
+  doesn't match the port it's actually bound to, so an iframe opened from
+  QTS's own desktop origin (a different port) trips both.
 - **First login**: qBittorrent 5.x generates a random temporary admin
   password on first start instead of a fixed default. The init script
   copies it to QTS's **Control Panel → System Logs → System Event Logs**
