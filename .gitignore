@@ -1,0 +1,14 @@
+# Build tooling fetched by build.sh (not vendored, see build.sh)
+/.qdk-toolkit/
+
+# Downloaded per-arch binary (fetched by build.sh)
+/x86_64/qbittorrent-nox
+
+# Build output
+/build/
+
+# Reference material dropped in locally (QNAP's own QDK redistributables/docs) —
+# kept on disk for reference, not meant to be tracked in this repo.
+/Documentation/
+/QDK_2.3.11.zip
+/QDK_2.3.3.qpkg
