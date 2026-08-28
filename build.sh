@@ -38,7 +38,7 @@ NOX_REPO="userdocs/qbittorrent-nox-static"
 # bundles. Bump this (and only this) when shipping a packaging-only change
 # (e.g. an init script fix) against an already-packaged qBittorrent version.
 # Reset it to 1.0 whenever qbt_version below moves to a new upstream release.
-QPKG_REVISION="${QPKG_REVISION:-1.0}"
+QPKG_REVISION="${QPKG_REVISION:-1.1}"
 
 # QNAP arch directory -> qbittorrent-nox-static release asset prefix.
 #
@@ -47,10 +47,16 @@ QPKG_REVISION="${QPKG_REVISION:-1.0}"
 # x86_ce53xx (a narrow legacy QNAP variant) and riscv64 (no QNAP hardware
 # uses it) are skipped for the same reason: no sensible 1:1 match exists.
 #
-# arm-x19/arm-x31/arm-x41 (Marvell Armada XP / Annapurna Alpine, all real
-# ARMv7-A Cortex-A9/A15-class chips) all get the "armv7" build, which
-# targets ARMv7-A specifically (see userdocs/qbt-musl-cross-make's
-# triples.json) rather than the more conservative ARMv6 "armhf" build.
+# arm-x19/arm-x31/arm-x41 all get the "armv7" build, which targets ARMv7-A
+# specifically (see userdocs/qbt-musl-cross-make's triples.json) rather than
+# the more conservative ARMv6 "armhf" build. arm-x31 (Mindspeed/Comcerto,
+# e.g. TS-131/TS-231/TS-431) and arm-x41 (Annapurna Alpine, e.g. TS-x31+/
+# TS-x31P) are confirmed ARMv7-A Cortex-A9/A15-class chips. arm-x19 is NOT
+# confirmed ARMv7-A — see the caveat in README.md's Architecture support
+# section and Documentation/QNAP-Models.md; it may actually correspond to
+# ARMv5TE Kirkwood hardware (same family as the excluded arm-x09 below), in
+# which case this armv7 build wouldn't run on real arm-x19 devices. Left
+# in place pending confirmation.
 ARCH_DIRS=(x86 x86_64 arm_64 arm-x19 arm-x31 arm-x41)
 arch_asset(){
     case "$1" in

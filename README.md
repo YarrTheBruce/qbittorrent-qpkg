@@ -101,14 +101,17 @@ Center listing triggers this same warning.
 
 ## Architecture support
 
-| QNAP arch  | Example models                          | Static build used | Status |
-|------------|------------------------------------------|--------------------|--------|
-| `x86_64`   | TS-251B and most modern Intel/AMD models | `x86_64`           | **Verified** — this is the only arch actually run and tested (see commits/PRs) |
-| `x86`      | Older 32-bit Intel/Atom models            | `x86`              | Untested |
-| `arm_64`   | 64-bit ARM models (e.g. Realtek RTD1296)  | `aarch64`          | Untested |
-| `arm-x19`  | Marvell Armada XP models (e.g. TS-x21)    | `armv7`            | Untested |
-| `arm-x31`  | Annapurna Alpine models (e.g. TS-x31)     | `armv7`            | Untested |
-| `arm-x41`  | Annapurna Alpine models (e.g. TS-x31+)    | `armv7`            | Untested |
+For a full model-by-model lookup (many more models per arch, plus sourcing
+notes), see [QNAP-Models.md](QNAP-Models.md).
+
+| QNAP arch  | Example models                              | Static build used | Status |
+|------------|----------------------------------------------|--------------------|--------|
+| `x86_64`   | TS-251B and most modern Intel/AMD models     | `x86_64`           | **Verified** — this is the only arch actually run and tested (see commits/PRs) |
+| `x86`      | Older 32-bit-only Intel/Atom models (e.g. TS-459 Pro) | `x86`     | Untested |
+| `arm_64`   | 64-bit ARM models (e.g. Realtek RTD1296)      | `aarch64`          | Untested |
+| `arm-x31`  | TS-131/TS-231/TS-431 (Mindspeed/Comcerto, ARMv7) | `armv7`         | Untested |
+| `arm-x41`  | TS-x31+/TS-x31P models (Annapurna Alpine, ARMv7) | `armv7`         | Untested |
+| `arm-x19`  | Unresolved — see caveat below                 | `armv7`            | Untested, disputed |
 
 "Untested" means: `build.sh` successfully packages a `.qpkg` with the
 correct binary for that architecture (confirmed by extracting each build
@@ -120,13 +123,28 @@ as runtime correctness (wrong ABI/kernel-version assumptions wouldn't
 show up until you try to start it on real hardware). Treat non-x86_64
 builds as a starting point, not a guarantee.
 
-Not supported at all: `arm-x09` (ARMv5 Kirkwood, e.g. old TS-119/TS-219/
-TS-419 models) has no matching upstream static build — the static builds'
-minimum ARM baseline is ARMv6 hard-float — and those models are old/
-resource-constrained enough that qBittorrent probably wouldn't run well
-regardless. `x86_ce53xx` (a narrow legacy QNAP variant) and `riscv64` (no
-QNAP hardware uses it) are skipped for the same reason: no sensible 1:1
-match to an upstream build exists.
+**`arm-x19` caveat:** this repo currently packages `arm-x19` with the same
+`armv7` binary as `arm-x31`/`arm-x41`, on the assumption it's ARMv7-A
+hardware (e.g. "Marvell Armada XP"). Research for the model lookup table
+above did not confirm that — the more concrete evidence found (a real-world
+QPKG compatibility list from another QNAP package project, cross-checked
+against confirmed CPU specs) instead points to `arm-x19` meaning QNAP's
+Marvell **Kirkwood** line (TS-119/TS-219/TS-419/TS-221/TS-421 — genuinely
+**ARMv5TE**, the same family already excluded as `arm-x09` below). If that's
+correct, the `armv7` binary shipped as `arm-x19` wouldn't run on the
+hardware QTS actually identifies as `arm-x19`, and this architecture may not
+currently work on any real device. Not verified either way, and `build.sh`
+hasn't been changed pending confirmation — see
+[QNAP-Models.md](QNAP-Models.md#arm-x19--unresolved-treat-with-caution)
+for details.
+
+Not supported at all: `arm-x09` (ARMv5 Kirkwood — see the `arm-x19` caveat
+above for why its "example models" are genuinely unclear) has no matching
+upstream static build — the static builds' minimum ARM baseline is ARMv6
+hard-float — and those models are old/resource-constrained enough that
+qBittorrent probably wouldn't run well regardless. `x86_ce53xx` (a narrow
+legacy QNAP variant) and `riscv64` (no QNAP hardware uses it) are skipped
+for the same reason: no sensible 1:1 match to an upstream build exists.
 
 If you test one of the untested architectures and it works (or doesn't),
 that's worth reporting back so this table can be corrected.
