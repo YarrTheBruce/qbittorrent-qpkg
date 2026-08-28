@@ -33,7 +33,7 @@ case "$1" in
 
     /bin/mkdir -p "$DATA_DIR"
 
-    WEBUI_PORT=$(/sbin/getcfg $QPKG_NAME Web_Port -d 8090 -f $CONF)
+    WEBUI_PORT=$(/sbin/getcfg $QPKG_NAME Web_Port -d 6262 -f $CONF)
 
     # qbittorrent-nox only ever prints its random first-run WebUI password
     # once, before it has written a config file. Detect that case up front

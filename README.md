@@ -73,8 +73,8 @@ browse to the `.qpkg` file from `build/`.
 
 ## Usage notes
 
-- **WebUI**: `http://<nas-ip>:8090/` by default (8080 is QNAP's own admin
-  WebUI port, so qBittorrent uses 8090 instead). The port is read from the
+- **WebUI**: `http://<nas-ip>:6262/` by default (8080 is QNAP's own admin
+  WebUI port, so qBittorrent uses 6262 instead). The port is read from the
   QPKG's `Web_Port` field in `/etc/config/qpkg.conf` (editable via App
   Center → qBittorrent → settings icon).
 - **First login**: qBittorrent 5.x generates a random temporary admin
