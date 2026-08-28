@@ -71,6 +71,18 @@ build still works for anyone without the private key.
 In QTS: **App Center → (⚙️ gear icon, top right) → Install Manually**, then
 browse to the `.qpkg` file from `build/`.
 
+You'll likely hit a **"Digital Signature Warning: This application does not
+have a valid digital signature..."** dialog — this is expected and safe to
+click through. It's unrelated to the GPG signing above: it's QTS checking
+the package against QNAP's own proprietary code-signing PKI
+(`codesigning.qnap.com.tw`), which is only issued to approved QNAP
+developers/publishers, not available for community packages. Essentially
+every homebrew QPKG not distributed through QNAP's official App Center
+listing triggers this same warning. The GPG signature this repo produces is
+a separate, independent check (verifies the file came from this repo
+unmodified) — it can't satisfy QTS's own check, since the two systems are
+unrelated.
+
 ## Usage notes
 
 - **WebUI**: `http://<nas-ip>:6262/` by default (8080 is QNAP's own admin
