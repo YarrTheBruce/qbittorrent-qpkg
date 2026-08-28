@@ -89,7 +89,7 @@ jobs:
 
           These builds are unsigned (no GPG key is stored in this repo's CI). Sign locally with \`QPKG_GPG_KEY=... ./build.sh\` if you need a signed copy.
           EOF
-          gh release create "v${VERSION}" build/*.qpkg build/*.qpkg.md5 \
+          gh release create "v${VERSION}" build/*.qpkg \
             --repo "${REPO}" \
             --title "qBittorrent ${VERSION}" \
             --notes-file release_notes.md
