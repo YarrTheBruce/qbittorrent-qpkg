@@ -80,7 +80,9 @@ browse to the `.qpkg` file from `build/`.
 - **First login**: qBittorrent 5.x generates a random temporary admin
   password on first start instead of a fixed default. The init script
   copies it to QTS's **Control Panel → System Logs → System Event Logs**
-  (as an Information entry) on that first start, so you don't need SSH
+  (as an Error-level entry — the only severity QNAP's own QDK material
+  actually documents a working example for; arguably fitting anyway, since
+  it demands action) on that first start, so you don't need SSH
   access to find it. It's also written to the package's own log:
   `/share/<volume>/.qpkg/qbittorrent/data/qbittorrent-nox.log` (look for a
   line starting "The WebUI administrator password was not set..."). Change

@@ -61,7 +61,11 @@ case "$1" in
         done
         TEMP_PASS=$(/bin/sed -n 's/.*temporary password is provided for this session: *//p' "$LOGFILE" | tail -1)
         if [ -n "$TEMP_PASS" ] && [ -x /sbin/log_tool ]; then
-            /sbin/log_tool -t0 -uSystem -p127.0.0.1 -mlocalhost -a \
+            # -t2 (Error) is used deliberately: it's the only type code QNAP's
+            # own QDK material actually documents/uses, and a mandatory
+            # "set your real password now" notice is arguably error-worthy
+            # anyway rather than merely informational.
+            /sbin/log_tool -t2 -uSystem -p127.0.0.1 -mlocalhost -a \
                 "qBittorrent WebUI temporary admin password: $TEMP_PASS (port $WEBUI_PORT, user: admin). Log in and change it under WebUI > Options > Web UI."
         fi
     fi
