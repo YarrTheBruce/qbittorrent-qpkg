@@ -131,6 +131,21 @@ match to an upstream build exists.
 If you test one of the untested architectures and it works (or doesn't),
 that's worth reporting back so this table can be corrected.
 
+## Versioning
+
+`QPKG_VER` is `<qbt_version>-<QPKG_REVISION>`, e.g. `5.2.3-1.0` — the
+qBittorrent version and this package's own revision are tracked
+independently. Bump `QPKG_REVISION` (near the top of `build.sh`, or
+override with `QPKG_REVISION=1.1 ./build.sh`) when shipping a
+packaging-only change — an init script fix, a new configurable option,
+etc. — without waiting on a new upstream qBittorrent release. Reset it to
+`1.0` whenever `qbt_version` moves to a new upstream release.
+
+Note: how QTS compares two `QPKG_VER` strings at upgrade time (e.g.
+whether it correctly treats `5.2.3-1.1` as newer than `5.2.3-1.0`) hasn't
+been verified against real hardware, same caveat as the
+[architecture support](#architecture-support) table above.
+
 ## Updating to a new qBittorrent version
 
 Just re-run `./build.sh` — it always fetches the latest static build and

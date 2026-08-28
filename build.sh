@@ -15,7 +15,10 @@
 #   2. Downloads the latest static qbittorrent-nox binary for each
 #      supported architecture from userdocs/qbittorrent-nox-static.
 #   3. Runs qbuild to produce one build/<QPKG_NAME>_<version>_<arch>.qpkg
-#      per architecture.
+#      per architecture, where <version> is <qbt_version>-<QPKG_REVISION>
+#      (e.g. 5.2.3-1.0) — the qBittorrent version and this package's own
+#      revision are versioned independently, so a packaging-only fix can
+#      bump QPKG_REVISION without waiting on a new qBittorrent release.
 #   4. If QPKG_GPG_KEY is set to a GPG key ID you hold the secret key for,
 #      signs each .qpkg (both QDK's own embedded signature, verifiable with
 #      `qbuild --verify`, and a standalone build/*.qpkg.asc detached
@@ -30,6 +33,12 @@ QDK_REPO="https://github.com/qnap-dev/QDK.git"
 QDK_REF="${QDK_REF:-master}"
 TOOLKIT_DIR="$ROOT_DIR/.qdk-toolkit"
 NOX_REPO="userdocs/qbittorrent-nox-static"
+
+# This package's own revision, independent of the qBittorrent version it
+# bundles. Bump this (and only this) when shipping a packaging-only change
+# (e.g. an init script fix) against an already-packaged qBittorrent version.
+# Reset it to 1.0 whenever qbt_version below moves to a new upstream release.
+QPKG_REVISION="${QPKG_REVISION:-1.0}"
 
 # QNAP arch directory -> qbittorrent-nox-static release asset prefix.
 #
@@ -87,7 +96,10 @@ if [ -z "$tag" ] || [ -z "$qbt_version" ]; then
 fi
 echo "    latest release: $tag (qBittorrent $qbt_version)"
 
-qbuild_args=(--build-version "$qbt_version" --build-dir build)
+package_version="${qbt_version}-${QPKG_REVISION}"
+echo "    package version: $package_version"
+
+qbuild_args=(--build-version "$package_version" --build-dir build)
 for dir in "${ARCH_DIRS[@]}"; do
     asset="$(arch_asset "$dir")"
     echo "==> Downloading ${asset}-qbittorrent-nox for ${dir}..."
@@ -101,7 +113,7 @@ done
 QPKG_GPG_KEY="${QPKG_GPG_KEY:-}"
 [ -n "$QPKG_GPG_KEY" ] && qbuild_args+=(--sign --gpg-name "$QPKG_GPG_KEY")
 
-echo "==> Building QPKGs (version $qbt_version) for: ${ARCH_DIRS[*]}..."
+echo "==> Building QPKGs (version $package_version) for: ${ARCH_DIRS[*]}..."
 rm -rf "$ROOT_DIR/build"
 PATH="$TOOLKIT_DIR/bin:$PATH" "$TOOLKIT_DIR/bin/qbuild" "${qbuild_args[@]}"
 
