@@ -40,6 +40,32 @@ Requires `git`, `curl`, and a C compiler (`cc`/`gcc`) on the build machine.
 Nothing QNAP-specific is required to build — `qbuild` is a portable shell
 script.
 
+### Signing a release
+
+Releases are GPG-signed with key `A89A45D89CADF434` (public key committed as
+[`qbittorrent-qpkg-release-key.asc`](qbittorrent-qpkg-release-key.asc)). To
+sign while building, set `QPKG_GPG_KEY` to a key ID you hold the secret key
+for:
+
+```
+QPKG_GPG_KEY=A89A45D89CADF434 ./build.sh
+```
+
+This produces two things in `build/` beyond the `.qpkg` itself:
+- The signature embedded *inside* the `.qpkg` by QDK's own `--sign`,
+  checkable with `qbuild --verify build/qbittorrent_<version>_x86_64.qpkg`.
+- A standalone detached signature, `qbittorrent_<version>_x86_64.qpkg.asc`,
+  checkable with plain `gpg` — no QDK required. This is the one to publish
+  alongside the `.qpkg` for others to verify:
+
+  ```
+  gpg --import qbittorrent-qpkg-release-key.asc
+  gpg --verify qbittorrent_<version>_x86_64.qpkg.asc qbittorrent_<version>_x86_64.qpkg
+  ```
+
+Leaving `QPKG_GPG_KEY` unset (the default) skips signing entirely, so the
+build still works for anyone without the private key.
+
 ## Installing
 
 In QTS: **App Center → (⚙️ gear icon, top right) → Install Manually**, then

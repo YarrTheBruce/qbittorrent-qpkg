@@ -8,6 +8,11 @@
 #   2. Downloads the latest static qbittorrent-nox binary for x86_64 from
 #      userdocs/qbittorrent-nox-static.
 #   3. Runs qbuild to produce build/qbittorrent_<version>_x86_64.qpkg.
+#   4. If QPKG_GPG_KEY is set to a GPG key ID you hold the secret key for,
+#      signs the .qpkg (both QDK's own embedded signature, verifiable with
+#      `qbuild --verify`, and a standalone build/*.qpkg.asc detached
+#      signature that anyone can check with plain `gpg --verify` — see
+#      README.md). Signing is skipped entirely if QPKG_GPG_KEY is unset.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -59,10 +64,22 @@ chmod +x "$ROOT_DIR/x86_64/qbittorrent-nox"
 
 echo "==> Building QPKG (version $qbt_version)..."
 rm -rf "$ROOT_DIR/build"
-PATH="$TOOLKIT_DIR/bin:$PATH" "$TOOLKIT_DIR/bin/qbuild" \
-    --build-arch x86_64 \
-    --build-version "$qbt_version" \
-    --build-dir build
+qbuild_args=(--build-arch x86_64 --build-version "$qbt_version" --build-dir build)
+QPKG_GPG_KEY="${QPKG_GPG_KEY:-}"
+[ -n "$QPKG_GPG_KEY" ] && qbuild_args+=(--sign --gpg-name "$QPKG_GPG_KEY")
+
+PATH="$TOOLKIT_DIR/bin:$PATH" "$TOOLKIT_DIR/bin/qbuild" "${qbuild_args[@]}"
+
+qpkg_file="$(ls "$ROOT_DIR"/build/*.qpkg)"
+
+if [ -n "$QPKG_GPG_KEY" ]; then
+    echo "==> Verifying embedded QDK signature..."
+    PATH="$TOOLKIT_DIR/bin:$PATH" "$TOOLKIT_DIR/bin/qbuild" --verify "$qpkg_file"
+
+    echo "==> Writing standalone detached signature ($(basename "$qpkg_file").asc)..."
+    gpg --batch --yes --local-user "$QPKG_GPG_KEY" \
+        --detach-sign --armor -o "${qpkg_file}.asc" "$qpkg_file"
+fi
 
 echo "==> Done:"
 ls -la "$ROOT_DIR/build"
