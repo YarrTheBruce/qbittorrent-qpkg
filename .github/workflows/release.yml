@@ -78,8 +78,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.check-version.outputs.version }}
+          REPO: ${{ github.repository }}
         run: |
+          cat > release_notes.md <<EOF
+          Automated build for qBittorrent ${VERSION}.
+
+          Not sure which file matches your NAS? Check the [Architecture support table](https://github.com/${REPO}/blob/main/README.md#architecture-support) in README.md, or the full [model-by-model lookup](https://github.com/${REPO}/blob/main/QNAP-Models.md). Only \`x86_64\` is verified working on real hardware — the rest are packaged-but-untested.
+
+          Uses static binaries from [userdocs/qbittorrent-nox-static](https://github.com/userdocs/qbittorrent-nox-static).
+
+          These builds are unsigned (no GPG key is stored in this repo's CI). Sign locally with \`QPKG_GPG_KEY=... ./build.sh\` if you need a signed copy.
+          EOF
           gh release create "v${VERSION}" build/*.qpkg build/*.qpkg.md5 \
-            --repo "${{ github.repository }}" \
+            --repo "${REPO}" \
             --title "qBittorrent ${VERSION}" \
-            --notes "Automated build for qBittorrent ${VERSION}. Not sure which file matches your NAS? Check the [Architecture support table](https://github.com/${{ github.repository }}/blob/main/README.md#architecture-support) in README.md — only \`x86_64\` is verified working on real hardware, the rest are packaged-but-untested. Uses static binaries from [userdocs/qbittorrent-nox-static](https://github.com/userdocs/qbittorrent-nox-static). These builds are unsigned (no GPG key is stored in this repo's CI); sign locally with \`QPKG_GPG_KEY=... ./build.sh\` if you need a signed copy."
+            --notes-file release_notes.md
