@@ -38,7 +38,7 @@ NOX_REPO="userdocs/qbittorrent-nox-static"
 # bundles. Bump this (and only this) when shipping a packaging-only change
 # (e.g. an init script fix) against an already-packaged qBittorrent version.
 # Reset it to 1.0 whenever qbt_version below moves to a new upstream release.
-QPKG_REVISION="${QPKG_REVISION:-1.2}"
+QPKG_REVISION="${QPKG_REVISION:-1.5}"
 
 # QNAP arch directory -> qbittorrent-nox-static release asset prefix.
 #

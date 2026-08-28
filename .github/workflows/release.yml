@@ -20,20 +20,35 @@ jobs:
   check-version:
     runs-on: ubuntu-latest
     outputs:
+      qbt_version: ${{ steps.version.outputs.qbt_version }}
       version: ${{ steps.version.outputs.version }}
       should_release: ${{ steps.check.outputs.should_release }}
     steps:
-      - name: Resolve latest qbittorrent-nox-static version
+      - uses: actions/checkout@v4
+
+      # Full package version is <qbt_version>-<QPKG_REVISION>, matching
+      # build.sh. Checking against the full version (not qbt_version alone)
+      # means a packaging-only QPKG_REVISION bump gets released too, not
+      # just a new upstream qBittorrent release.
+      - name: Resolve full package version
         id: version
         run: |
           tag=$(curl -fsSL https://api.github.com/repos/userdocs/qbittorrent-nox-static/releases/latest \
             | grep -m1 '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
-          version=$(printf '%s' "$tag" | sed -E 's/^release-([0-9.]+)_.*/\1/')
-          if [ -z "$version" ]; then
+          qbt_version=$(printf '%s' "$tag" | sed -E 's/^release-([0-9.]+)_.*/\1/')
+          if [ -z "$qbt_version" ]; then
             echo "Failed to resolve latest qbittorrent-nox-static version" >&2
             exit 1
           fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+          qpkg_revision=$(grep -oP 'QPKG_REVISION:-\K[0-9.]+' build.sh)
+          if [ -z "$qpkg_revision" ]; then
+            echo "Failed to resolve QPKG_REVISION default from build.sh" >&2
+            exit 1
+          fi
+
+          echo "qbt_version=$qbt_version" >> "$GITHUB_OUTPUT"
+          echo "version=${qbt_version}-${qpkg_revision}" >> "$GITHUB_OUTPUT"
 
       - name: Check whether this version is already released
         id: check
@@ -78,10 +93,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.check-version.outputs.version }}
+          QBT_VERSION: ${{ needs.check-version.outputs.qbt_version }}
           REPO: ${{ github.repository }}
         run: |
           cat > release_notes.md <<EOF
-          Automated build for qBittorrent ${VERSION}.
+          Automated build for qBittorrent ${QBT_VERSION}, packaging revision ${VERSION#*-}.
 
           Not sure which file matches your NAS? Check the [Architecture support table](https://github.com/${REPO}/blob/main/README.md#architecture-support) in README.md, or the full [model-by-model lookup](https://github.com/${REPO}/blob/main/QNAP-Models.md). Only \`x86_64\` is verified working on real hardware — the rest are packaged-but-untested.
 

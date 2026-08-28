@@ -141,5 +141,14 @@ pkg_install(){
     $CMD_MKDIR -p "$SYS_QPKG_DIR/data"
 }
 #
-#pkg_post_install(){
-#}
+pkg_post_install(){
+    # QDK's own set_qpkg_use_proxy/set_qpkg_proxy_path (called from
+    # register_qpkg, which runs before this) only WRITE the Use_Proxy/
+    # Proxy_Path fields when QPKG_USE_PROXY/QPKG_PROXY_PATH are defined in
+    # this build's qpkg.cfg -- they never clear a stale value an older
+    # build's install/upgrade left behind. Force both to always match what
+    # this build actually declares (default: off) so a revision that drops
+    # proxy usage can't leave it silently stuck enabled from a prior one.
+    $CMD_SETCFG "$QPKG_NAME" Use_Proxy "${QPKG_USE_PROXY:-0}" -f "$SYS_QPKG_CONFIG_FILE"
+    $CMD_SETCFG "$QPKG_NAME" Proxy_Path "${QPKG_PROXY_PATH:-}" -f "$SYS_QPKG_CONFIG_FILE"
+}

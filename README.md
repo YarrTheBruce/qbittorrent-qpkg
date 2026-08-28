@@ -78,14 +78,36 @@ Center listing triggers this same warning.
 - **WebUI**: `http://<nas-ip>:6262/` by default (8080 is QNAP's own admin
   WebUI port, so qBittorrent uses 6262 instead). The port is read from the
   QPKG's `Web_Port` field in `/etc/config/qpkg.conf` (editable via App
-  Center → qBittorrent → settings icon). Navigate there directly rather
-  than using App Center's "Open" button/icon if it ever shows a bare
-  "Unauthorized" with no login prompt — `qpkg.cfg` forces
-  `QPKG_DESKTOP_APP="0"` (plain new tab, not an iframe in the QTS desktop)
-  specifically to avoid this: qBittorrent's WebUI sends `frame-ancestors
-  'self'` in its CSP and its CSRF check rejects requests whose Origin
-  doesn't match the port it's actually bound to, so an iframe opened from
-  QTS's own desktop origin (a different port) trips both.
+  Center → qBittorrent → settings icon).
+- **CSRF protection ships disabled by default — a deliberate trade-off,
+  not an oversight.** App Center's "Open" button/icon (as opposed to
+  navigating to `:6262` directly) showed a bare "Unauthorized" with no
+  login prompt. Root cause, confirmed by inspecting the actual failing
+  request: the click carries a `Referer` from QTS's own desktop page
+  (port 8080) into the request to qBittorrent's WebUI (port 6262) —
+  browser origin is scheme+host+port, so a port difference alone makes
+  these different origins, and qBittorrent's CSRF check rejects any
+  request whose Referer/Origin doesn't match the port it's actually
+  bound to (confirmed separately: a *missing* Referer is fine, only a
+  *mismatched* one is rejected).
+
+  Nothing at install time (`QPKG_DESKTOP_APP`, QTS's own HTTP proxy —
+  both tried) can fix this: iframing is separately blocked by
+  qBittorrent's `frame-ancestors 'self'` CSP/`X-Frame-Options` headers
+  regardless of CSRF settings, and QTS's proxy doesn't actually make the
+  WebUI same-origin with the QTS desktop at the HTTP level. So the init
+  script pre-seeds `WebUI\CSRFProtection=false` into `qBittorrent.conf`
+  before qbittorrent-nox's very first launch (verified: the exact failing
+  request succeeds once this is set, both as a plain page load and as the
+  actual login POST). `QPKG_DESKTOP_APP="0"` keeps "Open" as a plain new
+  tab rather than an iframe, since iframing doesn't work regardless of
+  CSRF given the CSP restriction above.
+
+  This means qBittorrent's WebUI has no CSRF protection against malicious
+  cross-site requests from someone already logged into your network. If
+  you'd rather keep it enabled and just avoid the App Center button, edit
+  `shared/qbittorrent.sh` to drop the pre-seed block and always navigate
+  to `:6262` directly instead.
 - **First login**: qBittorrent 5.x generates a random temporary admin
   password on first start instead of a fixed default. The init script
   copies it to QTS's **Control Panel → System Logs → System Event Logs**

@@ -38,8 +38,22 @@ case "$1" in
     # qbittorrent-nox only ever prints its random first-run WebUI password
     # once, before it has written a config file. Detect that case up front
     # so we know whether it's worth polling the log for the password below.
+    CONFIG_FILE="$DATA_DIR/qBittorrent/config/qBittorrent.conf"
     FIRST_RUN=false
-    [ -f "$DATA_DIR/qBittorrent/config/qBittorrent.conf" ] || FIRST_RUN=true
+    [ -f "$CONFIG_FILE" ] || FIRST_RUN=true
+
+    # On a genuine first run, pre-seed CSRF protection off before
+    # qbittorrent-nox ever starts. Its CSRF check rejects any request whose
+    # Referer/Origin port doesn't match the port it's actually bound to, and
+    # a click on App Center's "Open" button/icon carries a Referer from
+    # QTS's own desktop (a different port by definition -> different
+    # origin), so without this every such click fails with a bare
+    # Unauthorized and no login prompt. This is a real, deliberate security
+    # trade-off (not just a workaround) -- see README.md.
+    if [ "$FIRST_RUN" = true ]; then
+        /bin/mkdir -p "$DATA_DIR/qBittorrent/config"
+        printf '[Preferences]\nWebUI\\CSRFProtection=false\n' > "$CONFIG_FILE"
+    fi
 
     # NOTE: intentionally not using --daemon; qbittorrent-nox double-forks in
     # that mode, so $! would not track the real running process. Backgrounding
