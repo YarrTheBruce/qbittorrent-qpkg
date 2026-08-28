@@ -1,6 +1,6 @@
 #!/bin/sh
 CONF=/etc/config/qpkg.conf
-QPKG_NAME="qbittorrent"
+QPKG_NAME="YTBqbittorrent"
 QPKG_ROOT=$(/sbin/getcfg $QPKG_NAME Install_Path -f $CONF)
 export QNAP_QPKG=$QPKG_NAME
 

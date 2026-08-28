@@ -4,6 +4,11 @@ A QNAP QPKG that packages [qBittorrent](https://www.qbittorrent.org/) (headless
 `qbittorrent-nox` + WebUI) for QNAP NAS. Built for x86_64 models (e.g. the
 TS-251B).
 
+The package name (`QPKG_NAME`) is `YTBqbittorrent`, not plain `qbittorrent` —
+deliberately prefixed so installing this doesn't collide with or overwrite
+any existing/official `qbittorrent` QPKG already on the NAS (QTS treats
+matching `QPKG_NAME` as the same app for upgrade/replace purposes).
+
 The package doesn't compile qBittorrent from source. It downloads the latest
 static `qbittorrent-nox` build from
 [userdocs/qbittorrent-nox-static](https://github.com/userdocs/qbittorrent-nox-static)
@@ -19,7 +24,7 @@ shared/            # architecture-independent files -> installed as-is
   qbittorrent.sh   # start/stop init script (App Center "Start/Stop" button)
 x86_64/            # architecture-specific files, x86_64 only
   qbittorrent-nox  # fetched by build.sh, not committed
-icons/             # optional App Center icons (qbittorrent[.gif|_80.gif|_gray.gif])
+icons/             # optional App Center icons (YTBqbittorrent[.gif|_80.gif|_gray.gif])
 build.sh           # fetches the QDK toolkit + binary and builds the .qpkg
 ```
 
@@ -34,7 +39,7 @@ This will:
    into `.qdk-toolkit/` (git-ignored — it's a build dependency, not part of
    the package) and compile its `qpkg_encrypt` helper.
 2. Download the latest `x86_64-qbittorrent-nox` static binary.
-3. Run `qbuild` to produce `build/qbittorrent_<version>_x86_64.qpkg`.
+3. Run `qbuild` to produce `build/YTBqbittorrent_<version>_x86_64.qpkg`.
 
 Requires `git`, `curl`, and a C compiler (`cc`/`gcc`) on the build machine.
 Nothing QNAP-specific is required to build — `qbuild` is a portable shell
@@ -53,14 +58,14 @@ QPKG_GPG_KEY=A89A45D89CADF434 ./build.sh
 
 This produces two things in `build/` beyond the `.qpkg` itself:
 - The signature embedded *inside* the `.qpkg` by QDK's own `--sign`,
-  checkable with `qbuild --verify build/qbittorrent_<version>_x86_64.qpkg`.
-- A standalone detached signature, `qbittorrent_<version>_x86_64.qpkg.asc`,
+  checkable with `qbuild --verify build/YTBqbittorrent_<version>_x86_64.qpkg`.
+- A standalone detached signature, `YTBqbittorrent_<version>_x86_64.qpkg.asc`,
   checkable with plain `gpg` — no QDK required. This is the one to publish
   alongside the `.qpkg` for others to verify:
 
   ```
   gpg --import qbittorrent-qpkg-release-key.asc
-  gpg --verify qbittorrent_<version>_x86_64.qpkg.asc qbittorrent_<version>_x86_64.qpkg
+  gpg --verify YTBqbittorrent_<version>_x86_64.qpkg.asc YTBqbittorrent_<version>_x86_64.qpkg
   ```
 
 Leaving `QPKG_GPG_KEY` unset (the default) skips signing entirely, so the
@@ -96,14 +101,14 @@ unrelated.
   actually documents a working example for; arguably fitting anyway, since
   it demands action) on that first start, so you don't need SSH
   access to find it. It's also written to the package's own log:
-  `/share/<volume>/.qpkg/qbittorrent/data/qbittorrent-nox.log` (look for a
+  `/share/<volume>/.qpkg/YTBqbittorrent/data/qbittorrent-nox.log` (look for a
   line starting "The WebUI administrator password was not set..."). Change
   it immediately under WebUI → Options → Web UI — note the password is
   visible in plaintext to anyone who can read the System Event Log (i.e.
   any NAS admin), same as it already was in the log file.
 - **Data location**: qBittorrent's profile (settings, resume data, and its
   *default* download save path) lives under
-  `<install path>/qbittorrent/data/`. **Uninstalling the package deletes
+  `<install path>/YTBqbittorrent/data/`. **Uninstalling the package deletes
   this directory**, including any torrents saved to the default path. Set
   a save path on one of your data volumes (e.g. `/share/Download`) under
   WebUI → Options → Downloads before adding torrents, if you want it to
@@ -120,6 +125,6 @@ directory.
 
 ## Customizing icons
 
-Drop `qbittorrent.gif` (and optionally `qbittorrent_80.gif`,
-`qbittorrent_gray.gif`) into `icons/` before building; `qbuild` only
-includes icon files that exist and match the package name.
+Drop `YTBqbittorrent.gif` (and optionally `YTBqbittorrent_80.gif`,
+`YTBqbittorrent_gray.gif`) into `icons/` before building; `qbuild` only
+includes icon files that exist and match `QPKG_NAME`.
