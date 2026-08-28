@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  schedule:
+    # Daily check for a newer qbittorrent-nox-static release. Cheap: the
+    # build itself only runs if a new version is actually found.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Rebuild and replace the release even if this version was already published"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      should_release: ${{ steps.check.outputs.should_release }}
+    steps:
+      - name: Resolve latest qbittorrent-nox-static version
+        id: version
+        run: |
+          tag=$(curl -fsSL https://api.github.com/repos/userdocs/qbittorrent-nox-static/releases/latest \
+            | grep -m1 '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
+          version=$(printf '%s' "$tag" | sed -E 's/^release-([0-9.]+)_.*/\1/')
+          if [ -z "$version" ]; then
+            echo "Failed to resolve latest qbittorrent-nox-static version" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Check whether this version is already released
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "v${{ steps.version.outputs.version }}" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            if [ "${{ github.event.inputs.force }}" = "true" ]; then
+              echo "v${{ steps.version.outputs.version }} already released, forcing rebuild"
+              echo "should_release=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "v${{ steps.version.outputs.version }} already released, nothing to do"
+              echo "should_release=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "v${{ steps.version.outputs.version }} not yet released"
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-and-release:
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential
+
+      - name: Build QPKGs for all supported architectures
+        run: ./build.sh
+
+      - name: Remove existing release/tag before re-publishing
+        if: github.event.inputs.force == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete "v${{ needs.check-version.outputs.version }}" \
+            --repo "${{ github.repository }}" --yes --cleanup-tag || true
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.check-version.outputs.version }}
+        run: |
+          gh release create "v${VERSION}" build/*.qpkg build/*.qpkg.md5 \
+            --repo "${{ github.repository }}" \
+            --title "qBittorrent ${VERSION}" \
+            --notes "Automated build for qBittorrent ${VERSION}, using static binaries from [userdocs/qbittorrent-nox-static](https://github.com/userdocs/qbittorrent-nox-static). Only \`x86_64\` is verified working on real hardware — see the Architecture support table in [README.md](https://github.com/${{ github.repository }}/blob/main/README.md#architecture-support) for the rest. These builds are unsigned (no GPG key is stored in this repo's CI); sign locally with \`QPKG_GPG_KEY=... ./build.sh\` if you need a signed copy."

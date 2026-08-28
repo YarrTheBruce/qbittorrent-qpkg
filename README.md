@@ -49,10 +49,21 @@ Requires `git`, `curl`, and a C compiler (`cc`/`gcc`) on the build machine.
 Nothing QNAP-specific is required to build — `qbuild` is a portable shell
 script.
 
+### Automated releases
+
+[`.github/workflows/release.yml`](.github/workflows/release.yml) checks
+daily (and can be run manually from the Actions tab) whether
+`qbittorrent-nox-static` has published a newer qBittorrent version than
+this repo's latest [GitHub Release](../../releases). If so, it runs
+`build.sh` and publishes all six `.qpkg` files as a new release, so you
+don't need to build locally at all unless you specifically want to.
+
 ## Installing
 
-In QTS: **App Center → (⚙️ gear icon, top right) → Install Manually**, then
-browse to the `.qpkg` file from `build/`.
+Grab a `.qpkg` for your architecture from either `build/` (if you built
+locally) or the [Releases page](../../releases) (published automatically —
+see above). Then in QTS: **App Center → (⚙️ gear icon, top right) → Install
+Manually**, then browse to that file.
 
 You'll likely hit a **"Digital Signature Warning: This application does not
 have a valid digital signature..."** dialog — this is expected and safe to
