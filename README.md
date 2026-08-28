@@ -45,32 +45,6 @@ Requires `git`, `curl`, and a C compiler (`cc`/`gcc`) on the build machine.
 Nothing QNAP-specific is required to build — `qbuild` is a portable shell
 script.
 
-### Signing a release
-
-Releases are GPG-signed with key `A89A45D89CADF434` (public key committed as
-[`qbittorrent-qpkg-release-key.asc`](qbittorrent-qpkg-release-key.asc)). To
-sign while building, set `QPKG_GPG_KEY` to a key ID you hold the secret key
-for:
-
-```
-QPKG_GPG_KEY=A89A45D89CADF434 ./build.sh
-```
-
-This produces two things in `build/` beyond the `.qpkg` itself:
-- The signature embedded *inside* the `.qpkg` by QDK's own `--sign`,
-  checkable with `qbuild --verify build/YTBqbittorrent_<version>_x86_64.qpkg`.
-- A standalone detached signature, `YTBqbittorrent_<version>_x86_64.qpkg.asc`,
-  checkable with plain `gpg` — no QDK required. This is the one to publish
-  alongside the `.qpkg` for others to verify:
-
-  ```
-  gpg --import qbittorrent-qpkg-release-key.asc
-  gpg --verify YTBqbittorrent_<version>_x86_64.qpkg.asc YTBqbittorrent_<version>_x86_64.qpkg
-  ```
-
-Leaving `QPKG_GPG_KEY` unset (the default) skips signing entirely, so the
-build still works for anyone without the private key.
-
 ## Installing
 
 In QTS: **App Center → (⚙️ gear icon, top right) → Install Manually**, then
@@ -78,15 +52,11 @@ browse to the `.qpkg` file from `build/`.
 
 You'll likely hit a **"Digital Signature Warning: This application does not
 have a valid digital signature..."** dialog — this is expected and safe to
-click through. It's unrelated to the GPG signing above: it's QTS checking
-the package against QNAP's own proprietary code-signing PKI
-(`codesigning.qnap.com.tw`), which is only issued to approved QNAP
-developers/publishers, not available for community packages. Essentially
-every homebrew QPKG not distributed through QNAP's official App Center
-listing triggers this same warning. The GPG signature this repo produces is
-a separate, independent check (verifies the file came from this repo
-unmodified) — it can't satisfy QTS's own check, since the two systems are
-unrelated.
+click through. It's QTS checking the package against QNAP's own proprietary
+code-signing PKI (`codesigning.qnap.com.tw`), which is only issued to
+approved QNAP developers/publishers, not available for community packages.
+Essentially every homebrew QPKG not distributed through QNAP's official App
+Center listing triggers this same warning.
 
 ## Usage notes
 
