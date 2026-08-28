@@ -1,11 +1,19 @@
 # Build tooling fetched by build.sh (not vendored, see build.sh)
 /.qdk-toolkit/
 
-# Downloaded per-arch binary (fetched by build.sh)
+# Downloaded per-arch binaries (fetched by build.sh)
+/x86/qbittorrent-nox
 /x86_64/qbittorrent-nox
+/arm_64/qbittorrent-nox
+/arm-x19/qbittorrent-nox
+/arm-x31/qbittorrent-nox
+/arm-x41/qbittorrent-nox
 
 # Build output
 /build/
+
+# Local Claude Code session state
+/.claude/
 
 # Reference material dropped in locally (QNAP's own QDK redistributables/docs) —
 # kept on disk for reference, not meant to be tracked in this repo.

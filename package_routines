@@ -123,12 +123,11 @@
 # Define any package specific requirement checks that shall be
 # performed before the package is installed.
 ######################################################################
-pkg_check_requirement(){
-    case "$(/bin/uname -m)" in
-        x86_64) : ;;
-        *) err_log "qbittorrent: unsupported CPU architecture ($(/bin/uname -m)); this package only supports x86_64 NAS models" ;;
-    esac
-}
+# No manual check needed here: qbuild bakes an architecture check into the
+# generated installer header for every --build-arch this package is built
+# for (see build.sh), so QTS already refuses to install a mismatched .qpkg.
+#pkg_check_requirement(){
+#}
 #
 ######################################################################
 # Define any package specific operations that shall be performed when

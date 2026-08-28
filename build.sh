@@ -1,15 +1,23 @@
 #!/usr/bin/env bash
-# Builds the qBittorrent QPKG for QNAP x86_64 NAS models.
+# Builds the qBittorrent QPKG for every QNAP CPU architecture that has a
+# matching static qbittorrent-nox build available.
+#
+# CAVEAT: only x86_64 has actually been run/tested against a real binary
+# (see README.md). Every other architecture below is packaged the same way
+# and *should* work, but is unverified on real hardware — this dev machine
+# can't execute non-x86_64 binaries, and QDK's packaging step doesn't run
+# the binary, only bundles it.
 #
 # What this does:
 #   1. Fetches QNAP's official QDK build tool (qnap-dev/QDK on GitHub) into
 #      .qdk-toolkit/ if it isn't already there. This is a build dependency,
 #      not part of the package, so it's git-ignored rather than vendored.
-#   2. Downloads the latest static qbittorrent-nox binary for x86_64 from
-#      userdocs/qbittorrent-nox-static.
-#   3. Runs qbuild to produce build/qbittorrent_<version>_x86_64.qpkg.
+#   2. Downloads the latest static qbittorrent-nox binary for each
+#      supported architecture from userdocs/qbittorrent-nox-static.
+#   3. Runs qbuild to produce one build/<QPKG_NAME>_<version>_<arch>.qpkg
+#      per architecture.
 #   4. If QPKG_GPG_KEY is set to a GPG key ID you hold the secret key for,
-#      signs the .qpkg (both QDK's own embedded signature, verifiable with
+#      signs each .qpkg (both QDK's own embedded signature, verifiable with
 #      `qbuild --verify`, and a standalone build/*.qpkg.asc detached
 #      signature that anyone can check with plain `gpg --verify` — see
 #      README.md). Signing is skipped entirely if QPKG_GPG_KEY is unset.
@@ -22,6 +30,29 @@ QDK_REPO="https://github.com/qnap-dev/QDK.git"
 QDK_REF="${QDK_REF:-master}"
 TOOLKIT_DIR="$ROOT_DIR/.qdk-toolkit"
 NOX_REPO="userdocs/qbittorrent-nox-static"
+
+# QNAP arch directory -> qbittorrent-nox-static release asset prefix.
+#
+# arm-x09 (ARMv5TE Kirkwood, e.g. TS-119/TS-219/TS-419) has no match: the
+# static builds' minimum ARM baseline is ARMv6 hard-float, so it's skipped.
+# x86_ce53xx (a narrow legacy QNAP variant) and riscv64 (no QNAP hardware
+# uses it) are skipped for the same reason: no sensible 1:1 match exists.
+#
+# arm-x19/arm-x31/arm-x41 (Marvell Armada XP / Annapurna Alpine, all real
+# ARMv7-A Cortex-A9/A15-class chips) all get the "armv7" build, which
+# targets ARMv7-A specifically (see userdocs/qbt-musl-cross-make's
+# triples.json) rather than the more conservative ARMv6 "armhf" build.
+ARCH_DIRS=(x86 x86_64 arm_64 arm-x19 arm-x31 arm-x41)
+arch_asset(){
+    case "$1" in
+        x86)      echo x86 ;;
+        x86_64)   echo x86_64 ;;
+        arm_64)   echo aarch64 ;;
+        arm-x19)  echo armv7 ;;
+        arm-x31)  echo armv7 ;;
+        arm-x41)  echo armv7 ;;
+    esac
+}
 
 echo "==> Ensuring QDK build toolkit is present..."
 if [ ! -x "$TOOLKIT_DIR/bin/qbuild" ] || [ ! -x "$TOOLKIT_DIR/bin/qpkg_encrypt" ]; then
@@ -49,7 +80,6 @@ echo "==> Resolving latest qbittorrent-nox-static release..."
 release_json="$(curl -fsSL "https://api.github.com/repos/${NOX_REPO}/releases/latest")"
 tag="$(printf '%s' "$release_json" | grep -m1 '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')"
 qbt_version="$(printf '%s' "$tag" | sed -E 's/^release-([0-9.]+)_.*/\1/')"
-bin_url="https://github.com/${NOX_REPO}/releases/download/${tag}/x86_64-qbittorrent-nox"
 
 if [ -z "$tag" ] || [ -z "$qbt_version" ]; then
     echo "Failed to resolve latest qbittorrent-nox-static release" >&2
@@ -57,28 +87,33 @@ if [ -z "$tag" ] || [ -z "$qbt_version" ]; then
 fi
 echo "    latest release: $tag (qBittorrent $qbt_version)"
 
-echo "==> Downloading x86_64-qbittorrent-nox..."
-mkdir -p "$ROOT_DIR/x86_64"
-curl -fsSL -o "$ROOT_DIR/x86_64/qbittorrent-nox" "$bin_url"
-chmod +x "$ROOT_DIR/x86_64/qbittorrent-nox"
+qbuild_args=(--build-version "$qbt_version" --build-dir build)
+for dir in "${ARCH_DIRS[@]}"; do
+    asset="$(arch_asset "$dir")"
+    echo "==> Downloading ${asset}-qbittorrent-nox for ${dir}..."
+    mkdir -p "$ROOT_DIR/$dir"
+    curl -fsSL -o "$ROOT_DIR/$dir/qbittorrent-nox" \
+        "https://github.com/${NOX_REPO}/releases/download/${tag}/${asset}-qbittorrent-nox"
+    chmod +x "$ROOT_DIR/$dir/qbittorrent-nox"
+    qbuild_args+=(--build-arch "$dir")
+done
 
-echo "==> Building QPKG (version $qbt_version)..."
-rm -rf "$ROOT_DIR/build"
-qbuild_args=(--build-arch x86_64 --build-version "$qbt_version" --build-dir build)
 QPKG_GPG_KEY="${QPKG_GPG_KEY:-}"
 [ -n "$QPKG_GPG_KEY" ] && qbuild_args+=(--sign --gpg-name "$QPKG_GPG_KEY")
 
+echo "==> Building QPKGs (version $qbt_version) for: ${ARCH_DIRS[*]}..."
+rm -rf "$ROOT_DIR/build"
 PATH="$TOOLKIT_DIR/bin:$PATH" "$TOOLKIT_DIR/bin/qbuild" "${qbuild_args[@]}"
 
-qpkg_file="$(ls "$ROOT_DIR"/build/*.qpkg)"
-
 if [ -n "$QPKG_GPG_KEY" ]; then
-    echo "==> Verifying embedded QDK signature..."
-    PATH="$TOOLKIT_DIR/bin:$PATH" "$TOOLKIT_DIR/bin/qbuild" --verify "$qpkg_file"
+    for qpkg_file in "$ROOT_DIR"/build/*.qpkg; do
+        echo "==> Verifying embedded QDK signature ($(basename "$qpkg_file"))..."
+        PATH="$TOOLKIT_DIR/bin:$PATH" "$TOOLKIT_DIR/bin/qbuild" --verify "$qpkg_file"
 
-    echo "==> Writing standalone detached signature ($(basename "$qpkg_file").asc)..."
-    gpg --batch --yes --local-user "$QPKG_GPG_KEY" \
-        --detach-sign --armor -o "${qpkg_file}.asc" "$qpkg_file"
+        echo "==> Writing standalone detached signature ($(basename "$qpkg_file").asc)..."
+        gpg --batch --yes --local-user "$QPKG_GPG_KEY" \
+            --detach-sign --armor -o "${qpkg_file}.asc" "$qpkg_file"
+    done
 fi
 
 echo "==> Done:"

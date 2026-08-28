@@ -1,8 +1,9 @@
 # qbittorrent-qpkg
 
 A QNAP QPKG that packages [qBittorrent](https://www.qbittorrent.org/) (headless
-`qbittorrent-nox` + WebUI) for QNAP NAS. Built for x86_64 models (e.g. the
-TS-251B).
+`qbittorrent-nox` + WebUI) for QNAP NAS. Builds for x86, x86_64, arm_64, and
+three ARMv7 variants — see [Architecture support](#architecture-support) for
+which of those are actually verified working vs. packaged-but-untested.
 
 The package name (`QPKG_NAME`) is `YTBqbittorrent`, not plain `qbittorrent` —
 deliberately prefixed so installing this doesn't collide with or overwrite
@@ -22,8 +23,9 @@ package_routines   # install/remove hooks, run by QNAP's generic installer
 qpkg.cfg           # package metadata (name, version, ports, ...)
 shared/            # architecture-independent files -> installed as-is
   qbittorrent.sh   # start/stop init script (App Center "Start/Stop" button)
-x86_64/            # architecture-specific files, x86_64 only
-  qbittorrent-nox  # fetched by build.sh, not committed
+x86/, x86_64/, arm_64/, arm-x19/, arm-x31/, arm-x41/
+                   # one qbittorrent-nox binary per architecture,
+                   # fetched by build.sh, not committed
 icons/             # optional App Center icons (YTBqbittorrent[.gif|_80.gif|_gray.gif])
 build.sh           # fetches the QDK toolkit + binary and builds the .qpkg
 ```
@@ -38,8 +40,10 @@ This will:
 1. Fetch QNAP's official [QDK](https://github.com/qnap-dev/QDK) build tool
    into `.qdk-toolkit/` (git-ignored — it's a build dependency, not part of
    the package) and compile its `qpkg_encrypt` helper.
-2. Download the latest `x86_64-qbittorrent-nox` static binary.
-3. Run `qbuild` to produce `build/YTBqbittorrent_<version>_x86_64.qpkg`.
+2. Download the latest static `qbittorrent-nox` binary for each supported
+   architecture (see below).
+3. Run `qbuild` to produce one `build/YTBqbittorrent_<version>_<arch>.qpkg`
+   per architecture.
 
 Requires `git`, `curl`, and a C compiler (`cc`/`gcc`) on the build machine.
 Nothing QNAP-specific is required to build — `qbuild` is a portable shell
@@ -83,8 +87,38 @@ Center listing triggers this same warning.
   a save path on one of your data volumes (e.g. `/share/Download`) under
   WebUI → Options → Downloads before adding torrents, if you want it to
   survive an uninstall/reinstall.
-- **Architecture**: this package only ships x86_64 binaries. It will refuse
-  to install on ARM-based QNAP models.
+
+## Architecture support
+
+| QNAP arch  | Example models                          | Static build used | Status |
+|------------|------------------------------------------|--------------------|--------|
+| `x86_64`   | TS-251B and most modern Intel/AMD models | `x86_64`           | **Verified** — this is the only arch actually run and tested (see commits/PRs) |
+| `x86`      | Older 32-bit Intel/Atom models            | `x86`              | Untested |
+| `arm_64`   | 64-bit ARM models (e.g. Realtek RTD1296)  | `aarch64`          | Untested |
+| `arm-x19`  | Marvell Armada XP models (e.g. TS-x21)    | `armv7`            | Untested |
+| `arm-x31`  | Annapurna Alpine models (e.g. TS-x31)     | `armv7`            | Untested |
+| `arm-x41`  | Annapurna Alpine models (e.g. TS-x31+)    | `armv7`            | Untested |
+
+"Untested" means: `build.sh` successfully packages a `.qpkg` with the
+correct binary for that architecture (confirmed by extracting each build
+and checking the embedded ELF header matches — e.g. `arm-x31` really does
+contain an ARM EABI5 binary, `arm_64` an aarch64 one, etc.), but nothing
+has actually *run* it — this dev environment is x86_64 and can't execute
+the other architectures' binaries. Packaging correctness isn't the same
+as runtime correctness (wrong ABI/kernel-version assumptions wouldn't
+show up until you try to start it on real hardware). Treat non-x86_64
+builds as a starting point, not a guarantee.
+
+Not supported at all: `arm-x09` (ARMv5 Kirkwood, e.g. old TS-119/TS-219/
+TS-419 models) has no matching upstream static build — the static builds'
+minimum ARM baseline is ARMv6 hard-float — and those models are old/
+resource-constrained enough that qBittorrent probably wouldn't run well
+regardless. `x86_ce53xx` (a narrow legacy QNAP variant) and `riscv64` (no
+QNAP hardware uses it) are skipped for the same reason: no sensible 1:1
+match to an upstream build exists.
+
+If you test one of the untested architectures and it works (or doesn't),
+that's worth reporting back so this table can be corrected.
 
 ## Updating to a new qBittorrent version
 
@@ -98,3 +132,18 @@ directory.
 Drop `YTBqbittorrent.gif` (and optionally `YTBqbittorrent_80.gif`,
 `YTBqbittorrent_gray.gif`) into `icons/` before building; `qbuild` only
 includes icon files that exist and match `QPKG_NAME`.
+
+## License
+
+The packaging scripts, install/remove hooks, and other original content of
+this repository are licensed under the [MIT License](LICENSE).
+
+This project doesn't include or modify qBittorrent source — `build.sh`
+downloads a prebuilt static `qbittorrent-nox` binary from
+[userdocs/qbittorrent-nox-static](https://github.com/userdocs/qbittorrent-nox-static)
+and bundles it unmodified into the `.qpkg`. That binary remains under
+qBittorrent's own license: [GPLv2 (or later)](https://github.com/qbittorrent/qBittorrent/blob/master/COPYING),
+with a special exception permitting linking against OpenSSL. Corresponding
+source is available from the [qBittorrent](https://github.com/qbittorrent/qBittorrent)
+and [qbittorrent-nox-static](https://github.com/userdocs/qbittorrent-nox-static)
+projects themselves.
