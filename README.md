@@ -153,11 +153,19 @@ bakes its version into the QPKG. QNAP's QPKG upgrade mechanism (installing
 a newer `.qpkg` over an existing install) preserves the `data/` profile
 directory.
 
-## Customizing icons
+## Icons
 
-Drop `YTBqbittorrent.gif` (and optionally `YTBqbittorrent_80.gif`,
-`YTBqbittorrent_gray.gif`) into `icons/` before building; `qbuild` only
-includes icon files that exist and match `QPKG_NAME`.
+`icons/` ships qBittorrent's own official app icon (from
+[`src/icons/qbittorrent.ico`](https://github.com/qbittorrent/qBittorrent/blob/master/src/icons/qbittorrent.ico)
+in the qBittorrent repo, same GPLv2+ license as the binary this package
+redistributes) at the sizes App Center expects: `YTBqbittorrent.png` (64×64),
+`YTBqbittorrent_80.png` (80×80), and a desaturated `YTBqbittorrent_gray.png`
+(64×64) for the disabled state. `qbuild` only includes icon files that exist
+and match `QPKG_NAME` — PNG or GIF both work despite the `.gif`-named files
+it produces internally (`.qpkg_icon.gif` etc.); that's a legacy naming
+convention, not an actual format requirement.
+
+To use different icons, replace those three files before building.
 
 ## License
 
@@ -173,3 +181,9 @@ with a special exception permitting linking against OpenSSL. Corresponding
 source is available from the [qBittorrent](https://github.com/qbittorrent/qBittorrent)
 and [qbittorrent-nox-static](https://github.com/userdocs/qbittorrent-nox-static)
 projects themselves.
+
+The icons in `icons/` are likewise derived from qBittorrent's own
+[`src/icons/qbittorrent.ico`](https://github.com/qbittorrent/qBittorrent/blob/master/src/icons/qbittorrent.ico)
+(same license as above), used here as an accurate identifier for the
+actual qBittorrent binary this package installs — this project isn't
+affiliated with or endorsed by the qBittorrent project.
